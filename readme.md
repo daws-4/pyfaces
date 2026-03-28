@@ -238,3 +238,6 @@ Cada script tiene parámetros ajustables en su sección `CONFIGURACION`:
 - Los **encodings faciales** son vectores de 128 números de punto flotante que representan la "huella digital" de un rostro. Son generados por la librería `dlib` a través de `face_recognition`.
 - El archivo `.pkl` (pickle) es un formato binario de Python que preserva la precisión completa de los vectores numéricos.
 - El paso 1 es el cuello de botella porque cada imagen requiere detección facial (HOG/CNN) y cálculo de encoding con múltiples jitters. Los pasos 2 y 3 solo hacen operaciones matemáticas sobre vectores ya calculados.
+
+
+.
