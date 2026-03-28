@@ -1,6 +1,15 @@
 fotos_prueba
-output_buscador_objetivo
-output_comparador_caras
-output_escaner_encodings
-persona_objetivo
 __pycache__
+
+# Ignorar contenido de carpetas de output y persona, pero mantener las carpetas
+output_buscador_objetivo/*
+!output_buscador_objetivo/.gitkeep
+
+output_comparador_caras/*
+!output_comparador_caras/.gitkeep
+
+output_escaner_encodings/*
+!output_escaner_encodings/.gitkeep
+
+persona_objetivo/*
+!persona_objetivo/.gitkeep
