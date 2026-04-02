@@ -207,8 +207,20 @@ if __name__ == "__main__":
         copiadas = 0
         errores_copia = 0
         for ruta in fotos_con_coincidencia:
-            if os.path.isfile(ruta):
-                nombre_destino = os.path.basename(ruta)
+            # Reemplazar barras cruzadas por si el archivo .pkl fue creado en Windows 
+            # originalmente y ahora está siendo leído dentro del contenedor Linux.
+            ruta_arreglada = ruta.replace('\\', os.sep).replace('/', os.sep)
+            
+            # Autocorreccion avanzada: Si la ruta tiene pegado "C:\Users\..." (Ruta absoluta de Windows)
+            # Docker no lo encontrara porque el contenedor empieza desde "/app". 
+            # Le quitaremos esa "basura" quedandonos solo de la carpeta de fotos hacia adelante.
+            if not os.path.isfile(ruta_arreglada) and 'fotos_prueba' in ruta_arreglada:
+                partes = ruta_arreglada.split('fotos_prueba')
+                # Reconstruir la ruta local
+                ruta_arreglada = os.path.join('fotos_prueba', partes[-1].lstrip(os.sep))
+
+            if os.path.isfile(ruta_arreglada):
+                nombre_destino = os.path.basename(ruta_arreglada)
                 destino = os.path.join(carpeta_objetivo, nombre_destino)
                 # Si ya existe un archivo con el mismo nombre, agregar sufijo
                 if os.path.exists(destino):
@@ -218,7 +230,7 @@ if __name__ == "__main__":
                         destino = os.path.join(carpeta_objetivo, f"{base}_{contador}{ext}")
                         contador += 1
                 try:
-                    shutil.copy2(ruta, destino)
+                    shutil.copy2(ruta_arreglada, destino)
                     copiadas += 1
                 except Exception:
                     errores_copia += 1

@@ -1,4 +1,3 @@
-fotos_prueba
 __pycache__
 
 # Ignorar contenido de carpetas de output y persona, pero mantener las carpetas
@@ -13,3 +12,9 @@ output_escaner_encodings/*
 
 persona_objetivo/*
 !persona_objetivo/.gitkeep
+
+fotos_sobrantes/*
+!fotos_sobrantes/.gitkeep
+
+fotos_prueba/*
+!fotos_prueba/.gitkeep

@@ -1,0 +1,18 @@
+# Ignorar carpetas pesadas para que el comando "docker build" sea ultra rapido
+# No necesitamos mandar las fotos ni los resultados pesados durante la construccion
+fotos_prueba/
+persona_objetivo/
+output_*/
+*.pkl
+*.xlsx
+*.mp4
+
+# Ignorar archivos de Python autogenerados y control de versiones
+__pycache__/
+*.pyc
+.git/
+
+# Entornos virtuales locales por si tienes
+env/
+venv/
+.env

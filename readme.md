@@ -29,64 +29,22 @@ El proyecto funciona en **3 pasos independientes**, cada uno con su propio scrip
                                               └── copias de fotos
 ```
 
-## Instalación (Windows)
+## Instalación (Recomendado: Docker)
 
-### Hardware recomendado
+Para evitar instalar herramientas de compilación pesadas (C++, Visual Studio, CMake), el proyecto ahora se ejecuta dentro de un contenedor Docker aislado. Esto garantiza que todos los programas funcionen independientemente de tu configuración del sistema.
 
-- CPU: Intel i5 12va gen o superior
-- RAM: 16 GB mínimo
-- GPU: No requerida (usa modelo HOG optimizado para CPU)
+### Pre-requisitos
 
-### Paso 1 — Python (la base)
+1. **Docker Desktop:** Descarga e instala [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+   - Asegúrate de dejarlo ejecutándose en segundo plano (verás el ícono de la ballena cerca del reloj en la barra de tareas).
+2. **Hardware recomendado:** CPU Intel i5 12va gen o superior, 16 GB de RAM.
 
-No uses la versión más nueva (como la 3.14). Usa una versión madura y estable donde las librerías ya estén optimizadas.
+### Instalación en 1 clic
 
-1. Descarga e instala **Python 3.12** desde [python.org](https://www.python.org/downloads/).
-2. **IMPORTANTE:** En la primera pantalla del instalador, marca la casilla **"Add Python to PATH"** (abajo del todo). Si no haces esto, ningún comando funcionará.
-
-### Paso 2 — Compilador C++ (Visual Studio)
-
-La librería `dlib` hace cálculos matemáticos intensivos y necesita C++ para compilarse correctamente.
-
-1. Descarga [Visual Studio Community 2022](https://visualstudio.microsoft.com/es/downloads/).
-2. En el instalador, marca la carga de trabajo: **"Desarrollo para el escritorio con C++"**.
-3. En el panel derecho (Detalles), asegúrate de que estén marcados:
-   - **MSVC v143** (Herramientas de compilación)
-   - **SDK de Windows** (10 u 11)
-   - **Herramientas de CMake de C++ para Windows** (vital)
-4. Instala y **reinicia la computadora**.
-
-### Paso 3 — dlib precompilado (el atajo)
-
-Normalmente Python intentaría construir `dlib` desde cero (lo cual tarda mucho y a veces falla). El atajo es instalar una versión ya compilada:
-
-```powershell
-python -m pip install dlib-bin
-```
-
-### Paso 4 — Modelos de IA (el "cerebro")
-
-Para evitar errores de modelos faltantes, forzamos la instalación directa:
-
-```powershell
-python -m pip install --force-reinstall face-recognition-models
-```
-
-### Paso 5 — Dependencias (herramientas de apoyo)
-
-Instalamos de un solo golpe todo lo que el programa necesita para leer fotos, manejar arreglos matemáticos, procesar video y exportar a Excel:
-
-```powershell
-python -m pip install numpy pillow click opencv-python pandas openpyxl
-```
-
-### Paso 6 — face_recognition (la librería final)
-
-Como ya le dimos a Python todo el trabajo pesado precompilado, instalamos `face_recognition` bloqueando su instinto de querer descargar dependencias por su cuenta:
-
-```powershell
-python -m pip install --no-deps face_recognition
-```
+1. Asegúrate de que Docker Desktop esté abierto.
+2. Da **doble clic** en el archivo `0_construir_imagen.bat`.
+3. Se abrirá una ventana negra que descargará el entorno de Linux, compilará C++ y preparará las dependencias automáticas.
+   - *Nota: Este proceso toma alrededor de 10-15 minutos la primera vez. Una vez terminado, no necesitarás volver a hacerlo.*
 
 ## Paso a paso
 
@@ -95,11 +53,8 @@ python -m pip install --no-deps face_recognition
 Este es el paso más lento. Extrae los vectores faciales (encodings) de todas las fotos y los guarda en un archivo `.pkl`.
 
 1. Coloca todas las fotos a analizar dentro de la carpeta `fotos_prueba/` (acepta subcarpetas).
-2. Ejecuta:
-
-```bash
-python escaner_encodings.py
-```
+2. Da **doble clic** en el archivo:
+   `1_escanear_fotos.bat`
 
 3. El script mostrará el progreso foto por foto:
 
@@ -121,11 +76,8 @@ Crea el perfil facial de la persona que quieres encontrar en el lote.
 
 1. Crea (o limpia) la carpeta `persona_objetivo/`.
 2. Coloca dentro fotos donde aparezca **únicamente esa persona** (1 sola cara por foto). Se recomiendan 3-5 fotos frontales y claras.
-3. Ejecuta:
-
-```bash
-python definir_objetivo.py
-```
+3. Da **doble clic** en el archivo:
+   `2_definir_objetivo.bat`
 
 4. El script pedirá el nombre de la persona y procesará cada foto:
 
@@ -147,11 +99,8 @@ Nombre de la persona (ej: Juan, Maria): graduando_1
 
 Compara el perfil del paso 2 contra todos los encodings del paso 1 y genera el reporte.
 
-1. Ejecuta:
-
-```bash
-python buscador_objetivo.py
-```
+1. Da **doble clic** en el archivo:
+   `3_buscar_objetivo.bat`
 
 2. El script automáticamente carga los archivos de los pasos anteriores y muestra los resultados:
 
@@ -174,9 +123,19 @@ Top 10 mejores coincidencias:
 
 ```
 py_faces/
-├── escaner_encodings.py          # Paso 1: extraer encodings
+├── 0_construir_imagen.bat        # Setup inicial de Docker
+├── 1_escanear_fotos.bat          # Ejecuta el paso 1 en Docker
+├── 2_definir_objetivo.bat        # Ejecuta el paso 2 en Docker
+├── 3_buscar_objetivo.bat         # Ejecuta el paso 3 en Docker
+├── 4_escanear_videos.bat         # Ejecuta el escáner de videos
+├── 5_ver_fotos_sobrantes.bat     # Separa fotos que no se le asignaron a nadie
+├── Dockerfile                    # Receta de la imagen Docker
+├── .dockerignore                 # Evita cargar archivos pesados al construir 
+├── requirements.txt              # Dependencias de Python
+├── escaner_encodings.py          # Script de Python paso 1
 ├── definir_objetivo.py           # Paso 2: crear perfil de persona
 ├── buscador_objetivo.py          # Paso 3: buscar persona en lote
+├── filtrar_sobrantes.py          # Script independiente: aislar sobrantes
 ├── escaner_videos.py             # Script independiente para fotos + videos
 ├── fotos_prueba/                 # Carpeta con las fotos a analizar
 ├── persona_objetivo/             # Fotos de la persona a buscar (1 cara c/u)
@@ -238,3 +197,8 @@ Cada script tiene parámetros ajustables en su sección `CONFIGURACION`:
 - Los **encodings faciales** son vectores de 128 números de punto flotante que representan la "huella digital" de un rostro. Son generados por la librería `dlib` a través de `face_recognition`.
 - El archivo `.pkl` (pickle) es un formato binario de Python que preserva la precisión completa de los vectores numéricos.
 - El paso 1 es el cuello de botella porque cada imagen requiere detección facial (HOG/CNN) y cálculo de encoding con múltiples jitters. Los pasos 2 y 3 solo hacen operaciones matemáticas sobre vectores ya calculados.
+- **Sobre Docker:** El uso de Docker con los archivos `.bat` permite "ensamblar" un pequeño entorno Linux para evitar instalar un compilador completo de C++ en tu anfitrión de Windows. El archivo `.dockerignore` juega un papel crítico para ignorar la transferencia de gigabytes de fotografías al *demonio* de Docker durante la construcción. Al momento de las búsquedas, el volumen montado del anfitrión (`-v "%~dp0:/app"`) permite la lectura/escritura de las imágenes y Excel directamente en la carpeta nativa de Windows.
+
+
+## POR AÑADIR
+- flag en archivos con caras ya organizadas

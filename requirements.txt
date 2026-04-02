@@ -1,0 +1,7 @@
+numpy
+pillow
+click
+opencv-python-headless
+pandas
+openpyxl
+face_recognition
