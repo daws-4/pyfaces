@@ -3,12 +3,13 @@ import sys
 import time
 import gc
 import pickle
+import traceback
 from datetime import datetime
 import face_recognition
 import numpy as np
 import cv2
 from PIL import Image
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed, BrokenExecutor
 
 # =============================================================================
 # PASO 1 DE 3: EXTRAER ENCODINGS DE UN LOTE DE IMAGENES
@@ -34,10 +35,36 @@ NUM_JITTERS = 20             # 20 = encodings muy estables
 MODELO_ENCODING = "large"   # "large" = 68 puntos faciales
 
 # --- Parametros de procesamiento ---
-MAX_ANCHO = 2400             # Limitar resolucion para controlar memoria
-NUM_WORKERS = 12             # Workers para procesamiento en paralelo
-TAMANO_LOTE = 15             # Imagenes por lote antes de liberar memoria
+MAX_ANCHO = 1800             # Limitar resolucion para controlar memoria
+TAMANO_LOTE = 20             # Imagenes por lote antes de liberar memoria
 APLICAR_CLAHE = True
+
+# --- Calculo automatico de workers segun RAM disponible ---
+def calcular_workers():
+    """Estima los workers seguros según la memoria libre en el contenedor."""
+    import os
+    memoria_por_worker_gb = 1.2  # Margen de RAM estimado por proceso paralelo
+    try:
+        # En entornos Linux/Docker, inspecciona memoria verdaderamente asginada y disponible
+        if os.path.exists('/proc/meminfo'):
+            with open('/proc/meminfo') as f:
+                for linea in f:
+                    if linea.startswith('MemAvailable:'):
+                        mem_kb = int(linea.split()[1])
+                        mem_gb = mem_kb / (1024 * 1024)
+                        # Reservar al menos 0.8 GB para sistema y orquestador principal
+                        mem_disponible_gb = max(0.5, mem_gb - 0.8)
+                        workers_por_ram = int(mem_disponible_gb / memoria_por_worker_gb)
+                        # Retorna workers, sin exceder los de CPUs físicas 
+                        return max(1, min(workers_por_ram, os.cpu_count() or 4))
+    except Exception:
+        pass
+    
+    # Fallback seguro a la mitad de núcleos asignados si no reconoce meminfo
+    cpus = os.cpu_count() or 2
+    return max(1, int(cpus / 2))
+
+NUM_WORKERS = calcular_workers()
 CLAHE_CLIP = 2.0
 CLAHE_GRID = (8, 8)
 INTENTAR_ROTACIONES = True   # Probar rotaciones EXIF si no detecta caras
@@ -130,7 +157,7 @@ def procesar_foto(ruta_completa):
     try:
         imagen_np = cargar_imagen_con_rotacion(ruta_completa)
         if imagen_np is None:
-            return (ruta_completa, nombre_archivo, None, 0)
+            return (ruta_completa, nombre_archivo, None, 0, "No se pudo cargar la imagen")
 
         # CLAHE para mejorar deteccion
         if APLICAR_CLAHE:
@@ -174,10 +201,11 @@ def procesar_foto(ruta_completa):
             encodings = []
 
         del imagen_np, imagen_clahe
-        return (ruta_completa, nombre_archivo, encodings, len(ubicaciones))
+        return (ruta_completa, nombre_archivo, encodings, len(ubicaciones), None)
 
     except Exception:
-        return (ruta_completa, nombre_archivo, None, 0)
+        error_msg = traceback.format_exc()
+        return (ruta_completa, nombre_archivo, None, 0, error_msg)
 
 
 # =============================================================================
@@ -218,36 +246,84 @@ if __name__ == "__main__":
     errores = 0
     procesadas = 0
 
+    fotos_fallidas = []  # Para reintentar secuencialmente si el pool crashea
+
     for i_lote in range(0, total_fotos, TAMANO_LOTE):
         lote = fotos[i_lote:i_lote + TAMANO_LOTE]
+        pool_roto = False
 
-        with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
-            futuros = {executor.submit(procesar_foto, ruta): ruta for ruta in lote}
+        try:
+            with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
+                futuros = {executor.submit(procesar_foto, ruta): ruta for ruta in lote}
 
-            for futuro in as_completed(futuros):
-                procesadas += 1
-                try:
-                    ruta, nombre, encodings, num_caras = futuro.result()
-                    if encodings is None:
+                for futuro in as_completed(futuros):
+                    procesadas += 1
+                    try:
+                        ruta, nombre, encodings, num_caras, error_msg = futuro.result()
+                        if encodings is None:
+                            errores += 1
+                            if error_msg:
+                                print(f"  [{procesadas}/{total_fotos}] {nombre} -> ERROR: {error_msg.splitlines()[-1]}")
+                            else:
+                                print(f"  [{procesadas}/{total_fotos}] {nombre} -> ERROR")
+                        elif len(encodings) > 0:
+                            for enc in encodings:
+                                todas_las_caras.append({
+                                    "encoding": enc,
+                                    "ruta_archivo": ruta,
+                                    "nombre_archivo": nombre
+                                })
+                            total_caras += num_caras
+                            print(f"  [{procesadas}/{total_fotos}] {nombre} -> OK ({num_caras} cara{'s' if num_caras > 1 else ''})")
+                        else:
+                            print(f"  [{procesadas}/{total_fotos}] {nombre} -> SIN CARA")
+                    except BrokenExecutor:
+                        pool_roto = True
+                        # Recolectar fotos pendientes del lote para reintento
+                        for f2, ruta2 in futuros.items():
+                            if not f2.done() or f2 == futuro:
+                                fotos_fallidas.append(ruta2)
+                        print(f"\n  ⚠ Pool de procesos crasheo (memoria insuficiente). Reintentando pendientes secuencialmente...")
+                        break
+                    except Exception as e:
                         errores += 1
-                        print(f"  [{procesadas}/{total_fotos}] {nombre} -> ERROR")
-                    elif len(encodings) > 0:
-                        for enc in encodings:
-                            todas_las_caras.append({
-                                "encoding": enc,
-                                "ruta_archivo": ruta,
-                                "nombre_archivo": nombre
-                            })
-                        total_caras += num_caras
-                        print(f"  [{procesadas}/{total_fotos}] {nombre} -> OK ({num_caras} cara{'s' if num_caras > 1 else ''})")
-                    else:
-                        print(f"  [{procesadas}/{total_fotos}] {nombre} -> SIN CARA")
-                except Exception:
-                    errores += 1
-                    ruta_fallida = futuros[futuro]
-                    print(f"  [{procesadas}/{total_fotos}] {os.path.basename(ruta_fallida)} -> ERROR")
+                        ruta_fallida = futuros[futuro]
+                        print(f"  [{procesadas}/{total_fotos}] {os.path.basename(ruta_fallida)} -> ERROR: {e}")
+        except BrokenExecutor:
+            pool_roto = True
+            fotos_fallidas.extend(lote)
+            print(f"\n  ⚠ Pool de procesos crasheo al iniciar lote. Reintentando secuencialmente...")
 
         gc.collect()
+
+    # Reintentar fotos fallidas de forma secuencial (sin paralelo)
+    if fotos_fallidas:
+        print(f"\n  Reintentando {len(fotos_fallidas)} imagenes de forma secuencial...")
+        for ruta in fotos_fallidas:
+            procesadas += 1
+            try:
+                ruta_r, nombre_r, encodings_r, num_caras_r, error_msg = procesar_foto(ruta)
+                if encodings_r is None:
+                    errores += 1
+                    if error_msg:
+                        print(f"  [{procesadas}/{total_fotos}] {nombre_r} -> ERROR: {error_msg.splitlines()[-1]}")
+                    else:
+                        print(f"  [{procesadas}/{total_fotos}] {nombre_r} -> ERROR")
+                elif len(encodings_r) > 0:
+                    for enc in encodings_r:
+                        todas_las_caras.append({
+                            "encoding": enc,
+                            "ruta_archivo": ruta_r,
+                            "nombre_archivo": nombre_r
+                        })
+                    total_caras += num_caras_r
+                    print(f"  [{procesadas}/{total_fotos}] {nombre_r} -> OK ({num_caras_r} cara{'s' if num_caras_r > 1 else ''})")
+                else:
+                    print(f"  [{procesadas}/{total_fotos}] {nombre_r} -> SIN CARA")
+            except Exception as e:
+                errores += 1
+                print(f"  [{procesadas}/{total_fotos}] {os.path.basename(ruta)} -> ERROR: {e}")
+            gc.collect()
 
     print()
 
