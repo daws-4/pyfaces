@@ -46,29 +46,28 @@ Para evitar instalar herramientas de compilación pesadas (C++, Visual Studio, C
 3. Se abrirá una ventana negra que descargará el entorno de Linux, compilará C++ y preparará las dependencias automáticas.
    - *Nota: Este proceso toma alrededor de 10-15 minutos la primera vez. Una vez terminado, no necesitarás volver a hacerlo.*
 
-### Asignación de Recursos para Docker (Importante para otros equipos)
+### Asignación de Recursos para Docker (Especial AMD Ryzen 7 5700U / 16GB RAM)
 
-Si vas a replicar el proyecto en otras computadoras, **Docker Desktop nativo en Windows (WSL2)** por defecto limita el uso de memoria a un 50% de la RAM total. Ya que el reconocimiento y las rutinas de mejora de imagen consumen mucha memoria, la extracción de encodings puede cerrarse abruptamente (crash the "Workers").
-
-Para configurarlo de forma correcta en otros ordenadores y aprovechar toda su capacidad, sigue estos pasos:
+**¡IMPORTANTE!** Estás en la rama del fork optimizado (`feat/optimizado-amd-ryzen-7`). Esta versión tiene configuraciones **predefinidas y rígidas** para exprimir al máximo computadoras como la descrita (16 hilos, 16GB RAM).
 
 1. **Memoria Base y Procesadores (Nivel Windows)**
-   Debes crear un archivo llamado `.wslconfig` en la carpeta de tu usuario (generalmente en `C:\Users\TU_USUARIO\.wslconfig`) con el siguiente contenido:
+   Asegúrate de crear (o modificar si ya existe) un archivo llamado `.wslconfig` en la carpeta de tu usuario (generalmente en `C:\Users\TU_USUARIO\.wslconfig`) con el siguiente contenido:
    ```ini
    [wsl2]
-   memory=10GB
-   processors=10
+   memory=12GB
+   processors=14
    ```
-   *Ajusta `10GB` y `10` según la capacidad de tu nuevo equipo. (No excedas ni el 80% de tu memoria ni el total de núcleos para no congelar tu PC).*
+   *Nota: Esto toma 12GB obligatorios para Docker, dejando ~4GB para Windows. Está pensado puramente para que corras el extractor y la PC quede dedicada a ello un rato.*
 
 2. **Aplicar la configuración de WSL**
-   Luego, abre una terminal (CMD o PowerShell) y ejecuta:
+   Abre una terminal (CMD o PowerShell) y ejecuta:
    `wsl --shutdown`
    (Luego Docker Desktop se reiniciará automáticamente o puedes abrirlo manualmente).
 
-3. **Escalabilidad Inteligente en los Scripts (Automático)**
-   - El archivo `escaner_encodings.py` ya está programado para **detectar la RAM libre dinámicamente** y ajustar la cantidad de _workers_ paralelos. 
-   - No necesitas editar `1_escanear_fotos.bat` a menos que desees forzar límites directos de Docker. Si seguiste los pasos con `.wslconfig`, el script interno detectará que ahora tienes, por ejemplo, los 10GB de memoria, y ejecutará exactamente la cantidad máxima segura de hilos.
+3. **Límites de ejecución**
+   - En el archivo `1_escanear_fotos.bat`, ya está configurada la bandera paramétrica para ocupar la mayoría del Ryzen (`--memory=12g --cpus=14`).
+   - En `escaner_encodings.py`, está forzado internamente `NUM_WORKERS = 10` (usa 10 a 12 GB, con lotes de 25 fotos). Mantiene 4 hilos sobrantes (del docker y Windows) para que el ordenador no colapse del todo.
+
 
 ## Paso a paso
 

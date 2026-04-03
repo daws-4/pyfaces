@@ -35,39 +35,17 @@ NUM_JITTERS = 20             # 20 = encodings muy estables
 MODELO_ENCODING = "large"   # "large" = 68 puntos faciales
 
 # --- Parametros de procesamiento ---
-MAX_ANCHO = 1800             # Limitar resolucion para controlar memoria
-TAMANO_LOTE = 20             # Imagenes por lote antes de liberar memoria
+MAX_ANCHO = 2000             # Excelente balance calidad-memoria para 12GB
+TAMANO_LOTE = 25             # Lote más grande ya que hay mucha CPU
 APLICAR_CLAHE = True
-
-# --- Calculo automatico de workers segun RAM disponible ---
-def calcular_workers():
-    """Estima los workers seguros según la memoria libre en el contenedor."""
-    import os
-    memoria_por_worker_gb = 1.2  # Margen de RAM estimado por proceso paralelo
-    try:
-        # En entornos Linux/Docker, inspecciona memoria verdaderamente asginada y disponible
-        if os.path.exists('/proc/meminfo'):
-            with open('/proc/meminfo') as f:
-                for linea in f:
-                    if linea.startswith('MemAvailable:'):
-                        mem_kb = int(linea.split()[1])
-                        mem_gb = mem_kb / (1024 * 1024)
-                        # Reservar al menos 0.8 GB para sistema y orquestador principal
-                        mem_disponible_gb = max(0.5, mem_gb - 0.8)
-                        workers_por_ram = int(mem_disponible_gb / memoria_por_worker_gb)
-                        # Retorna workers, sin exceder los de CPUs físicas 
-                        return max(1, min(workers_por_ram, os.cpu_count() or 4))
-    except Exception:
-        pass
-    
-    # Fallback seguro a la mitad de núcleos asignados si no reconoce meminfo
-    cpus = os.cpu_count() or 2
-    return max(1, int(cpus / 2))
-
-NUM_WORKERS = calcular_workers()
 CLAHE_CLIP = 2.0
 CLAHE_GRID = (8, 8)
 INTENTAR_ROTACIONES = True   # Probar rotaciones EXIF si no detecta caras
+
+# --- Fork Optimizado para AMD Ryzen 7 5700U (8 Núcleos / 16 hilos) y 16GB RAM ---
+# Configuramos 10 Workers. Utilizarán ~1.2GB C/U (12GB RAM)
+# Esto deja varios hilos de CPU libres para el orquestador principal y Windows.
+NUM_WORKERS = 10
 
 
 # =============================================================================
