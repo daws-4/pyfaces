@@ -1,5 +1,6 @@
 import os
 import sys
+import seguridad
 import time
 import gc
 import pickle
@@ -24,7 +25,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed, BrokenExecutor
 # =============================================================================
 
 # --- CONFIGURACION ---
-CARPETA_A_ESCANEAR = "fotos_prueba"
+CARPETA_A_ESCANEAR = "fotos"
 CARPETA_SALIDA = "output_escaner_encodings"
 ARCHIVO_SALIDA = os.path.join(CARPETA_SALIDA, "lote_encodings.pkl")
 

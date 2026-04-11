@@ -1,5 +1,6 @@
 import os
 import sys
+import seguridad
 import time
 import pickle
 import shutil
@@ -39,7 +40,7 @@ import face_recognition
 # --- CONFIGURACION ---
 ARCHIVO_LOTE = os.path.join("output_escaner_encodings", "lote_encodings.pkl")
 ARCHIVO_PERFIL = os.path.join("output_comparador_caras", "perfil_objetivo.pkl")
-CARPETA_SALIDA = "output_buscador_objetivo"
+CARPETA_SALIDA = "personas_encontradas"
 ARCHIVO_EXCEL = os.path.join(CARPETA_SALIDA, "resultado_busqueda.xlsx")
 
 # --- MODO NIÑOS ---
@@ -441,10 +442,10 @@ if __name__ == "__main__":
             # Autocorreccion avanzada: Si la ruta tiene pegado "C:\Users\..." (Ruta absoluta de Windows)
             # Docker no lo encontrara porque el contenedor empieza desde "/app". 
             # Le quitaremos esa "basura" quedandonos solo de la carpeta de fotos hacia adelante.
-            if not os.path.isfile(ruta_arreglada) and 'fotos_prueba' in ruta_arreglada:
-                partes = ruta_arreglada.split('fotos_prueba')
+            if not os.path.isfile(ruta_arreglada) and 'fotos' in ruta_arreglada:
+                partes = ruta_arreglada.split('fotos')
                 # Reconstruir la ruta local
-                ruta_arreglada = os.path.join('fotos_prueba', partes[-1].lstrip(os.sep))
+                ruta_arreglada = os.path.join('fotos', partes[-1].lstrip(os.sep))
 
             if os.path.isfile(ruta_arreglada):
                 nombre_destino = os.path.basename(ruta_arreglada)
@@ -480,9 +481,9 @@ if __name__ == "__main__":
             for ruta in rutas_revision:
                 ruta_arreglada = ruta.replace('\\', os.sep).replace('/', os.sep)
 
-                if not os.path.isfile(ruta_arreglada) and 'fotos_prueba' in ruta_arreglada:
-                    partes = ruta_arreglada.split('fotos_prueba')
-                    ruta_arreglada = os.path.join('fotos_prueba', partes[-1].lstrip(os.sep))
+                if not os.path.isfile(ruta_arreglada) and 'fotos' in ruta_arreglada:
+                    partes = ruta_arreglada.split('fotos')
+                    ruta_arreglada = os.path.join('fotos', partes[-1].lstrip(os.sep))
 
                 if os.path.isfile(ruta_arreglada):
                     nombre_destino = os.path.basename(ruta_arreglada)

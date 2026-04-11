@@ -23,7 +23,7 @@ El proyecto funciona en **3 pasos independientes**, cada uno con su propio scrip
                                               │
 ┌─────────────────────────┐                   │
 │  PASO 3 (instantáneo)   │◄─────────────────┘
-│  buscador_objetivo.py   │──────► output_buscador_objetivo/
+│  buscador_objetivo.py   │──────► personas_encontradas/
 │  ~2 segundos            │           ├── resultado_busqueda.xlsx
 └─────────────────────────┘           └── {nombre_persona}/
                                               └── copias de fotos
@@ -76,7 +76,7 @@ Para configurarlo de forma correcta en otros ordenadores y aprovechar toda su ca
 
 Este es el paso más lento. Extrae los vectores faciales (encodings) de todas las fotos y los guarda en un archivo `.pkl`.
 
-1. Coloca todas las fotos a analizar dentro de la carpeta `fotos_prueba/` (acepta subcarpetas).
+1. Coloca todas las fotos a analizar dentro de la carpeta `fotos/` (acepta subcarpetas).
 2. Da **doble clic** en el archivo:
    `1_escanear_fotos.bat`
 
@@ -139,13 +139,13 @@ Top 10 mejores coincidencias:
 ```
 
 3. Se genera:
-   - `output_buscador_objetivo/resultado_busqueda.xlsx` — Excel con 5 hojas:
+   - `personas_encontradas/resultado_busqueda.xlsx` — Excel con 5 hojas:
      - **Coincidencias**: Matches confirmados con todas las métricas
      - **Revisión Manual**: Matches borderline que fallaron 1 filtro (revisar visualmente)
      - **Fotos Únicas**: Resumen sin duplicados
      - **Lote Completo**: Todas las fotos con indicador SI/NO
      - **Configuración**: Parámetros usados (para reproducibilidad)
-   - `output_buscador_objetivo/{nombre_persona}/` — Carpeta con copias de todas las fotos donde aparece la persona
+   - `personas_encontradas/{nombre_persona}/` — Carpeta con copias de todas las fotos donde aparece la persona
 
 **Este paso es instantáneo (~2 segundos). Puedes ejecutarlo múltiples veces cambiando la tolerancia.**
 
@@ -167,13 +167,13 @@ py_faces/
 ├── buscador_objetivo.py          # Paso 3: buscar persona en lote
 ├── filtrar_sobrantes.py          # Script independiente: aislar sobrantes
 ├── escaner_videos.py             # Script independiente para fotos + videos
-├── fotos_prueba/                 # Carpeta con las fotos a analizar
+├── fotos/                        # Carpeta con las fotos a analizar
 ├── persona_objetivo/             # Fotos de la persona a buscar (1 cara c/u)
 ├── output_escaner_encodings/     # Salida del paso 1
 │   └── lote_encodings.pkl
 ├── output_comparador_caras/      # Salida del paso 2
 │   └── perfil_objetivo.pkl
-└── output_buscador_objetivo/     # Salida del paso 3
+└── personas_encontradas/         # Salida del paso 3
     ├── resultado_busqueda.xlsx
     └── {nombre_persona}/         # Copias de fotos con coincidencia
 ```

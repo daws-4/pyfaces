@@ -1,5 +1,7 @@
 import os
 import gc
+import sys
+import seguridad
 import time
 import face_recognition
 import pandas as pd
@@ -11,7 +13,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 # =============================================================================
 # CONFIGURACIÓN — MÁXIMA PRECISIÓN PARA i5-12th Gen / 16GB RAM
 # =============================================================================
-CARPETA_A_ESCANEAR = "fotos_prueba"
+CARPETA_A_ESCANEAR = "fotos"
 ARCHIVO_TXT = "resultados_caras.txt"
 ARCHIVO_EXCEL = "reporte_caras.xlsx"
 
@@ -339,12 +341,11 @@ if __name__ == "__main__":
 
     personas_encodings = {}
     personas_promedio = {}
-    contador_personas = 1
+    state = {'contador_personas': 1}
     datos_para_excel = []
 
     def identificar_encoding(cara_encoding):
         """Identifica con promediado acumulativo para mayor robustez."""
-        nonlocal contador_personas
 
         if len(personas_promedio) > 0:
             nombres = list(personas_promedio.keys())
@@ -359,10 +360,10 @@ if __name__ == "__main__":
                 personas_promedio[nombre] = np.mean(personas_encodings[nombre], axis=0)
                 return nombre
 
-        nombre = f"Persona_{contador_personas}"
+        nombre = f"Persona_{state['contador_personas']}"
         personas_encodings[nombre] = [cara_encoding]
         personas_promedio[nombre] = cara_encoding
-        contador_personas += 1
+        state['contador_personas'] += 1
         return nombre
 
     # --- Procesar resultados de FOTOS ---
@@ -422,7 +423,7 @@ if __name__ == "__main__":
         })
 
     tiempo_fase2_total = time.time() - tiempo_fase2
-    total_personas = contador_personas - 1
+    total_personas = state['contador_personas'] - 1
     print(f"  ✅ Fase 2 completada en {tiempo_fase2_total:.1f}s")
     print(f"  👤 Total de personas únicas: {total_personas}")
 

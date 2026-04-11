@@ -1,5 +1,6 @@
 import os
 import sys
+import seguridad
 import time
 import pickle
 import face_recognition

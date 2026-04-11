@@ -1,5 +1,6 @@
 import os
 import sys
+import seguridad
 import shutil
 import pickle
 from collections import Counter
@@ -17,8 +18,8 @@ from collections import Counter
 # =============================================================================
 
 # Configuración
-CARPETA_ORIGEN = "fotos_prueba"
-CARPETA_RESULTADOS = "output_buscador_objetivo"
+CARPETA_ORIGEN = "fotos"
+CARPETA_RESULTADOS = "personas_encontradas"
 CARPETA_SOBRANTES = "fotos_sobrantes"
 ARCHIVO_LOTE = os.path.join("output_escaner_encodings", "lote_encodings.pkl")
 

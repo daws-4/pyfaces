@@ -7,7 +7,7 @@ import traceback
 sys.path.insert(0, '.')
 
 # Import and run exactly like escaner_encodings.py does
-CARPETA_A_ESCANEAR = "fotos_prueba"
+CARPETA_A_ESCANEAR = "fotos"
 MODELO_DETECCION = "hog"
 UPSAMPLE_VECES = 2
 NUM_JITTERS = 20
