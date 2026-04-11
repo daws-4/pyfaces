@@ -29,8 +29,8 @@ NOMBRE_PERSONA = ""  # Dejar vacio para que pregunte al ejecutar
 
 # --- Parametros de deteccion (mismos que escaner_encodings.py) ---
 MODELO_DETECCION = "hog"
-UPSAMPLE_VECES = 1          # 1 = evita detectar caras falsas en fondos/texturas
-NUM_JITTERS = 20
+UPSAMPLE_VECES = 2          # 2 = mismo valor que escaner_encodings.py para consistencia
+NUM_JITTERS = 30            # 30 = mas alto para perfil objetivo (referencia base, pocas fotos)
 MODELO_ENCODING = "large"
 MAX_ANCHO = 2400
 APLICAR_CLAHE = True
@@ -193,6 +193,14 @@ if __name__ == "__main__":
     # las distancias entre sus encodings deben ser bajas
     if len(encodings_validos) >= 2:
         print(f"  Verificando consistencia de {len(encodings_validos)} muestras...")
+        
+        # Calcular distancia de cada muestra al centroide (promedio)
+        distancias_al_centroide = []
+        for enc in encodings_validos:
+            d = np.linalg.norm(enc - encoding_promedio)
+            distancias_al_centroide.append(d)
+        
+        # Calcular distancias internas (entre pares)
         distancias_internas = []
         for i in range(len(encodings_validos)):
             for j in range(i + 1, len(encodings_validos)):
@@ -201,9 +209,37 @@ if __name__ == "__main__":
 
         dist_max = max(distancias_internas)
         dist_promedio = np.mean(distancias_internas)
+        dist_std = np.std(distancias_internas)
 
         print(f"  Distancia promedio entre muestras: {dist_promedio:.4f}")
         print(f"  Distancia maxima entre muestras:   {dist_max:.4f}")
+        print(f"  Desviacion estandar:               {dist_std:.4f}")
+
+        # Deteccion de outliers: muestras muy lejanas al centroide
+        media_dist_centroide = np.mean(distancias_al_centroide)
+        std_dist_centroide = np.std(distancias_al_centroide)
+        
+        outliers = []
+        if len(encodings_validos) >= 3 and std_dist_centroide > 0:
+            for idx, d in enumerate(distancias_al_centroide):
+                if d > media_dist_centroide + 2 * std_dist_centroide:
+                    outliers.append((idx, fotos_usadas[idx], d))
+        
+        if outliers:
+            print(f"\n  ⚠ Se detectaron {len(outliers)} muestra(s) atipica(s):")
+            for idx, foto, d in outliers:
+                print(f"    - {foto} (distancia al centroide: {d:.4f})")
+            print(f"  Promedio de distancia al centroide: {media_dist_centroide:.4f}")
+            print(f"  Estas fotos podrian ser de mala calidad o de otra persona.")
+            respuesta = input("  Excluir outliers del perfil? (s/n): ").strip().lower()
+            if respuesta == 's':
+                indices_excluir = {idx for idx, _, _ in outliers}
+                encodings_validos = [e for i, e in enumerate(encodings_validos) if i not in indices_excluir]
+                fotos_excluidas = [f for idx, f, _ in outliers]
+                fotos_usadas = [f for i, f in enumerate(fotos_usadas) if i not in indices_excluir]
+                print(f"  Excluidas: {', '.join(fotos_excluidas)}")
+                print(f"  Recalculando con {len(encodings_validos)} muestras...")
+                encoding_promedio = np.mean(encodings_validos, axis=0)
 
         if dist_max > 0.6:
             print()
@@ -217,10 +253,18 @@ if __name__ == "__main__":
         else:
             print("  Consistencia: BUENA - todas las muestras son similares entre si.\n")
 
+    # Calcular encoding mediana (mas robusto contra outliers)
+    encoding_mediana = np.median(encodings_validos, axis=0) if len(encodings_validos) > 1 else encoding_promedio
+    
+    # Calcular desviacion estandar por dimension (indica que dimensiones varian mas)
+    encoding_std = np.std(encodings_validos, axis=0) if len(encodings_validos) > 1 else np.zeros(128)
+
     # Guardar perfil
     perfil = {
         "nombre": nombre,
         "encoding_promedio": encoding_promedio,
+        "encoding_mediana": encoding_mediana.tolist(),
+        "encoding_std": encoding_std.tolist(),
         "todos_encodings": [e.tolist() for e in encodings_validos],
         "fotos_usadas": fotos_usadas,
         "num_muestras": len(encodings_validos),

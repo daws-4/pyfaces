@@ -129,16 +129,22 @@ Compara el perfil del paso 2 contra todos los encodings del paso 1 y genera el r
 2. El script automáticamente carga los archivos de los pasos anteriores y muestra los resultados:
 
 ```
-Coincidencias encontradas: 28
-Fotos unicas con esta persona: 28
+Concordancias confirmadas: 12
+Revision manual (borderline): 3
+Fotos unicas con esta persona: 12
 
 Top 10 mejores coincidencias:
-  1. [MUY ALTA] IMG_9076.JPG (dist: 0.1454)
-  2. [MUY ALTA] IMG_9084.JPG (dist: 0.1467)
+  1. [MUY ALTA] IMG_9076.JPG (score: 92.3, dist: 0.1454, votos: 5/5)
+  2. [MUY ALTA] IMG_9084.JPG (score: 89.1, dist: 0.1467, votos: 5/5)
 ```
 
 3. Se genera:
-   - `output_buscador_objetivo/resultado_busqueda.xlsx` — Excel con 3 hojas (coincidencias, fotos únicas, lote completo)
+   - `output_buscador_objetivo/resultado_busqueda.xlsx` — Excel con 5 hojas:
+     - **Coincidencias**: Matches confirmados con todas las métricas
+     - **Revisión Manual**: Matches borderline que fallaron 1 filtro (revisar visualmente)
+     - **Fotos Únicas**: Resumen sin duplicados
+     - **Lote Completo**: Todas las fotos con indicador SI/NO
+     - **Configuración**: Parámetros usados (para reproducibilidad)
    - `output_buscador_objetivo/{nombre_persona}/` — Carpeta con copias de todas las fotos donde aparece la persona
 
 **Este paso es instantáneo (~2 segundos). Puedes ejecutarlo múltiples veces cambiando la tolerancia.**
@@ -197,7 +203,23 @@ Cada script tiene parámetros ajustables en su sección `CONFIGURACION`:
 
 | Parámetro | Valor por defecto | Descripción |
 |-----------|-------------------|-------------|
-| `TOLERANCIA_BUSQUEDA` | `0.45` | `0.35` = muy estricto, `0.45` = equilibrado, `0.50` = flexible |
+| `MODO_NINOS` | `True` | Activa filtrado reforzado para caras de niños |
+| `TOLERANCIA_BUSQUEDA` | `0.33` (niños) / `0.40` (adultos) | Distancia máxima para considerar coincidencia |
+| `UMBRAL_VOTACION` | `0.75` (niños) / `0.60` (adultos) | % mínimo de muestras que deben confirmar |
+| `MAX_STD_DISTANCIAS` | `0.04` (niños) / `0.06` (adultos) | Desviación estándar máxima (consistencia) |
+| `MIN_SCORE_COMPUESTO` | `70` (niños) / `55` (adultos) | Score mínimo compuesto (0-100) |
+
+### Sistema Anti-Falsos Positivos (v2)
+
+El buscador usa **5 capas de filtrado** para eliminar falsos positivos:
+
+1. **Distancia media** — La distancia promedio a todas las muestras del perfil debe ser ≤ tolerancia
+2. **Votación por consenso** — Un porcentaje mínimo de muestras debe reconocer la cara individualmente 
+3. **Consistencia (STD)** — La desviación estándar de las distancias debe ser baja (rechaza matches ambiguos)
+4. **Mediana** — La mediana de distancias también debe pasar (robusto contra outliers)
+5. **Score compuesto** — Combinación ponderada de todas las métricas ≥ umbral mínimo
+
+Las caras que pasan **algunas pero no todas** las capas van a la hoja "Revisión Manual" del Excel.
 
 ## Estados de las fotos
 
@@ -209,12 +231,13 @@ Cada script tiene parámetros ajustables en su sección `CONFIGURACION`:
 
 ## Niveles de confianza
 
-| Nivel | Distancia | Significado |
-|-------|-----------|-------------|
-| **MUY ALTA** | ≤ 0.35 | Coincidencia casi segura |
-| **ALTA** | 0.35 - 0.40 | Coincidencia confiable |
-| **MEDIA** | 0.40 - 0.45 | Probable coincidencia, verificar manualmente |
-| **BAJA** | > 0.45 | Coincidencia débil, posible falso positivo |
+| Nivel | Score | Significado |
+|-------|-------|-------------|
+| **MUY ALTA** | ≥ 85 | Coincidencia casi segura |
+| **ALTA** | 70-84 | Coincidencia confiable |
+| **MEDIA** | 55-69 | Probable coincidencia, verificar manualmente |
+| **BAJA** | 40-54 | Coincidencia débil, posible falso positivo |
+| **MUY BAJA** | < 40 | No se incluye en resultados |
 
 ## Notas técnicas
 

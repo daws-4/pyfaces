@@ -43,20 +43,22 @@ APLICAR_CLAHE = True
 def calcular_workers():
     """Estima los workers seguros según la memoria libre en el contenedor."""
     import os
-    memoria_por_worker_gb = 1.2  # Margen de RAM estimado por proceso paralelo
+    memoria_por_worker_gb = 0.8  # RAM estimada por worker (HOG + MAX_ANCHO=1800)
     try:
-        # En entornos Linux/Docker, inspecciona memoria verdaderamente asginada y disponible
+        # En entornos Linux/Docker, inspecciona memoria verdaderamente asignada y disponible
         if os.path.exists('/proc/meminfo'):
             with open('/proc/meminfo') as f:
                 for linea in f:
                     if linea.startswith('MemAvailable:'):
                         mem_kb = int(linea.split()[1])
                         mem_gb = mem_kb / (1024 * 1024)
-                        # Reservar al menos 0.8 GB para sistema y orquestador principal
-                        mem_disponible_gb = max(0.5, mem_gb - 0.8)
+                        # Reservar 0.5 GB para sistema
+                        mem_disponible_gb = max(0.5, mem_gb - 0.5)
                         workers_por_ram = int(mem_disponible_gb / memoria_por_worker_gb)
-                        # Retorna workers, sin exceder los de CPUs físicas 
-                        return max(1, min(workers_por_ram, os.cpu_count() or 4))
+                        cpus = os.cpu_count() or 4
+                        resultado = max(1, min(workers_por_ram, cpus))
+                        print(f"  [Auto-config] RAM disponible: {mem_gb:.1f} GB | CPUs: {cpus} | Workers: {resultado}")
+                        return resultado
     except Exception:
         pass
     
@@ -172,6 +174,9 @@ def procesar_foto(ruta_completa):
             model=MODELO_DETECCION
         )
 
+        # La imagen usada para encoding debe ser la MISMA usada para deteccion
+        imagen_para_encoding = imagen_clahe
+
         # Si no detecto caras e INTENTAR_ROTACIONES, probar rotaciones manuales
         if len(ubicaciones) == 0 and INTENTAR_ROTACIONES:
             for angulo in [90, 180, 270]:
@@ -186,17 +191,22 @@ def procesar_foto(ruta_completa):
                     model=MODELO_DETECCION
                 )
                 if len(ubicaciones) > 0:
-                    imagen_np = img_rot
+                    imagen_para_encoding = img_rot_clahe if APLICAR_CLAHE else img_rot
                     break
 
-        # Extraer encodings
+        # Extraer encodings (usar la misma imagen donde se detectaron las caras)
         if len(ubicaciones) > 0:
-            encodings = face_recognition.face_encodings(
-                imagen_np,
-                known_face_locations=ubicaciones,
-                num_jitters=NUM_JITTERS,
-                model=MODELO_ENCODING
-            )
+            try:
+                encodings = face_recognition.face_encodings(
+                    imagen_para_encoding,
+                    known_face_locations=ubicaciones,
+                    num_jitters=NUM_JITTERS,
+                    model=MODELO_ENCODING
+                )
+            except Exception:
+                error_msg = traceback.format_exc()
+                del imagen_np, imagen_clahe
+                return (ruta_completa, nombre_archivo, None, 0, error_msg)
         else:
             encodings = []
 
