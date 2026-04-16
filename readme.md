@@ -247,5 +247,17 @@ Las caras que pasan **algunas pero no todas** las capas van a la hoja "Revisión
 - **Sobre Docker:** El uso de Docker con los archivos `.bat` permite "ensamblar" un pequeño entorno Linux para evitar instalar un compilador completo de C++ en tu anfitrión de Windows. El archivo `.dockerignore` juega un papel crítico para ignorar la transferencia de gigabytes de fotografías al *demonio* de Docker durante la construcción. Al momento de las búsquedas, el volumen montado del anfitrión (`-v "%~dp0:/app"`) permite la lectura/escritura de las imágenes y Excel directamente en la carpeta nativa de Windows.
 
 
+## ¿Cómo funciona al nivel de tecnologías? (Explicación simplificada)
+
+El proyecto utiliza un conjunto de herramientas para funcionar como un **detective digital** que busca personas específicas en muchas fotos o videos:
+
+1. **Python (El cerebro):** Da las instrucciones y conecta todas las demás herramientas.
+2. **Reconocimiento Facial (face_recognition y dlib):** La Inteligencia artificial (IA) que mira las fotos y se "aprende" los rasgos de la persona para buscarla.
+3. **Visión artificial (OpenCV, Numpy, Pillow):** Actúan como los "ojos" súper rápidos para leer miles de fotos o fotogramas de video e identificar dónde hay un rostro.
+4. **Reportes y Datos (Pandas y Excel):** Como un oficinista, guarda registro y entrega hojas de cálculo ordenadas con las fotos donde apreció la persona.
+5. **Menús automatizados (Click y Archivos `.bat`):** Permiten al usuario hacer todo con dos clics, sin necesidad de programar un solo comando.
+6. **Docker (La caja mágica):** Empaqueta todo este sistema en un ambiente seguro para garantizar que funcione en cualquier computadora sin instalaciones complicadas.
+7. **Seguridad (Hash):** Un pequeño candado inicial que verifica las contraseñas de licencia para asegurar que solo usuarios autorizados pueden usar el sistema.
+
 ## POR AÑADIR
 - flag en archivos con caras ya organizadas

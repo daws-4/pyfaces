@@ -16,5 +16,14 @@ persona_objetivo/*
 fotos_sobrantes/*
 !fotos_sobrantes/.gitkeep
 
+fotos_sobrantes_todas/*
+!fotos_sobrantes_todas/.gitkeep
+
 fotos_prueba/*
 !fotos_prueba/.gitkeep
+
+fotos/*
+!fotos/.gitkeep
+
+personas_encontradas/*
+!personas_encontradas/.gitkeep

@@ -3,11 +3,18 @@ import sys
 import os
 import time
 
+# --- CONFIGURACIÓN DE SEGURIDAD ---
+# Cambia a False para omitir la solicitud de contraseña
+PEDIR_CONTRASENA = True
+
 # Hash SHA-256 de la contraseña esperada.
 # Valor por defecto generado para la contraseña: "codePicture/14"
 HASH_ESPERADO = "c4e3d44a952a51405b42eef5459eeadbe8d05dcf0d536775f9948e86001f166b"
 
 def validar_acceso():
+    if not PEDIR_CONTRASENA:
+        return True
+
     archivo_token = ".auth_ok"
     
     # Si el archivo token existe, verificamos su antigüedad

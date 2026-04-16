@@ -439,13 +439,14 @@ if __name__ == "__main__":
             # originalmente y ahora está siendo leído dentro del contenedor Linux.
             ruta_arreglada = ruta.replace('\\', os.sep).replace('/', os.sep)
             
-            # Autocorreccion avanzada: Si la ruta tiene pegado "C:\Users\..." (Ruta absoluta de Windows)
-            # Docker no lo encontrara porque el contenedor empieza desde "/app". 
-            # Le quitaremos esa "basura" quedandonos solo de la carpeta de fotos hacia adelante.
-            if not os.path.isfile(ruta_arreglada) and 'fotos' in ruta_arreglada:
-                partes = ruta_arreglada.split('fotos')
+            # Compatibilidad con .pkl generado cuando la carpeta se llamaba "fotos_prueba"
+            ruta_arreglada = ruta_arreglada.replace(f'fotos_prueba{os.sep}', f'fotos{os.sep}')
+
+            # Autocorreccion avanzada para Docker: quitar las rutas absolutas de Windows ("C:\Users\...")
+            if not os.path.isfile(ruta_arreglada) and f'fotos{os.sep}' in ruta_arreglada:
+                partes = ruta_arreglada.split(f'fotos{os.sep}')
                 # Reconstruir la ruta local
-                ruta_arreglada = os.path.join('fotos', partes[-1].lstrip(os.sep))
+                ruta_arreglada = os.path.join('fotos', partes[-1])
 
             if os.path.isfile(ruta_arreglada):
                 nombre_destino = os.path.basename(ruta_arreglada)
@@ -481,9 +482,12 @@ if __name__ == "__main__":
             for ruta in rutas_revision:
                 ruta_arreglada = ruta.replace('\\', os.sep).replace('/', os.sep)
 
-                if not os.path.isfile(ruta_arreglada) and 'fotos' in ruta_arreglada:
-                    partes = ruta_arreglada.split('fotos')
-                    ruta_arreglada = os.path.join('fotos', partes[-1].lstrip(os.sep))
+                # Compatibilidad con .pkl antiguo
+                ruta_arreglada = ruta_arreglada.replace(f'fotos_prueba{os.sep}', f'fotos{os.sep}')
+
+                if not os.path.isfile(ruta_arreglada) and f'fotos{os.sep}' in ruta_arreglada:
+                    partes = ruta_arreglada.split(f'fotos{os.sep}')
+                    ruta_arreglada = os.path.join('fotos', partes[-1])
 
                 if os.path.isfile(ruta_arreglada):
                     nombre_destino = os.path.basename(ruta_arreglada)
